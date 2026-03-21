@@ -1,0 +1,2234 @@
+<!-- TEMPLATE_MARKER: This file is assembled by build.py -->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>药物ATC分类智能分析平台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════ */
+/*  RESET & ROOT                                       */
+/* ═══════════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --l1:#0f172a;--l1-bg:#e2e8f0;--l1-border:#334155;
+  --l2:#1e40af;--l2-bg:#dbeafe;--l2-border:#3b82f6;
+  --l3:#065f46;--l3-bg:#d1fae5;--l3-border:#10b981;
+  --l4:#c2410c;--l4-bg:#ffedd5;--l4-border:#f97316;
+  --l5:#6b21a8;--l5-bg:#f3e8ff;--l5-border:#a855f7;
+  --bg:#f8fafc;--surface:#fff;--text:#1e293b;--text2:#64748b;
+  --border:#e2e8f0;--radius:10px;
+  --font-body:'Noto Sans SC',system-ui,-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono','SF Mono','Fira Code',monospace;
+  --header-grad:linear-gradient(135deg,#f5f0e8 0%,#faf7f2 40%,#f0ebe0 100%);
+  --accent:#3b82f6;--accent2:#8b5cf6;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.08);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+  --shadow-lg:0 8px 30px rgba(0,0,0,.15);
+}
+body{font-family:var(--font-body);background:var(--bg);min-height:100vh;color:var(--text);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+
+/* ═══════════════════════════════════════════════════ */
+/*  LOADING SCREEN                                     */
+/* ═══════════════════════════════════════════════════ */
+#loadingScreen{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--header-grad);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#3d3529;gap:24px;transition:opacity .5s;
+}
+#loadingScreen.fade-out{opacity:0;pointer-events:none}
+.loading-icon{font-size:48px;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.1);opacity:.7}}
+.loading-bar{width:260px;height:4px;background:rgba(0,0,0,.1);border-radius:4px;overflow:hidden}
+.loading-fill{height:100%;background:#b8956a;border-radius:4px;transition:width .3s;width:0}
+.loading-text{font-size:13px;color:#8a7d6b}
+
+/* ═══════════════════════════════════════════════════ */
+/*  HEADER                                             */
+/* ═══════════════════════════════════════════════════ */
+.header{
+  background:var(--header-grad);
+  color:#3d3529;padding:18px 16px 14px;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 12px rgba(60,50,30,.1);
+  border-bottom:1px solid #e8e0d0;
+}
+.header-top{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.header-icon{font-size:30px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.1))}
+.header-title h1{font-size:19px;font-weight:700;letter-spacing:.3px;color:#2c2416}
+.header-title p{font-size:11px;color:#8a7d6b;margin-top:2px;letter-spacing:.5px}
+.stats{display:flex;gap:6px;margin-bottom:12px}
+.stat-badge{
+  background:rgba(255,255,255,.65);border:1px solid #e0d8c8;
+  border-radius:8px;padding:6px 8px;flex:1;text-align:center;
+}
+.stat-badge .num{font-size:17px;font-weight:700;color:#3d3529}
+.stat-badge .lbl{font-size:9px;color:#8a7d6b;margin-top:1px;text-transform:uppercase;letter-spacing:.5px}
+.search-wrap{position:relative}
+.search-wrap input{
+  width:100%;padding:10px 40px 10px 38px;
+  border-radius:var(--radius);border:1px solid #d8d0c0;
+  background:rgba(255,255,255,.7);
+  color:#3d3529;font-size:14px;font-family:var(--font-body);
+  outline:none;transition:all .2s;
+}
+.search-wrap input::placeholder{color:#a89880}
+.search-wrap input:focus{background:#fff;border-color:#b8a88a;box-shadow:0 0 0 3px rgba(180,160,120,.15)}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;color:#8a7d6b}
+.clear-btn{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:#8a7d6b;font-size:16px;cursor:pointer;
+  display:none;padding:2px 6px;
+}
+.clear-btn:hover{color:#3d3529}
+
+/* ═══════════════════════════════════════════════════ */
+/*  TOOLBAR                                            */
+/* ═══════════════════════════════════════════════════ */
+.toolbar{
+  display:flex;gap:6px;padding:8px 16px;align-items:center;flex-wrap:wrap;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  position:sticky;top:var(--header-h,140px);z-index:99;
+}
+.btn{
+  padding:5px 12px;border-radius:7px;border:1.5px solid var(--border);
+  background:var(--surface);font-size:11px;color:var(--text2);cursor:pointer;
+  font-family:var(--font-body);transition:all .15s;display:inline-flex;align-items:center;gap:4px;
+  white-space:nowrap;
+}
+.btn:hover{background:#f1f5f9;border-color:#94a3b8}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:#2563eb}
+.btn.nebula-btn{
+  background:linear-gradient(135deg,#8b5cf6,#3b82f6);
+  color:#fff;border-color:#8b5cf6;
+}
+.btn.nebula-btn:hover{filter:brightness(1.1)}
+.btn.overview-btn{
+  background:linear-gradient(135deg,#0f172a,#1e3a5f);
+  color:#fff;border-color:#1e3a5f;
+}
+.btn.overview-btn:hover{filter:brightness(1.2)}
+.result-count{margin-left:auto;font-size:11px;color:var(--text2)}
+
+/* ═══════════════════════════════════════════════════ */
+/*  LAYOUT                                             */
+/* ═══════════════════════════════════════════════════ */
+.page-shell{display:block}
+.sidebar{display:none}
+.tree-container{padding:12px 8px 80px}
+
+/* LEGEND */
+.legend{
+  display:flex;gap:4px;flex-wrap:wrap;
+  padding:10px 14px;
+}
+.legend-item{
+  display:flex;align-items:center;gap:4px;
+  font-size:11px;color:var(--text2);padding:4px 8px;
+  border-radius:20px;cursor:pointer;
+  border:1.5px solid transparent;transition:all .2s;
+}
+.legend-item.active{border-color:currentColor;background:var(--bg)}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ═══════════════════════════════════════════════════ */
+/*  TREE NODES                                         */
+/* ═══════════════════════════════════════════════════ */
+.node{margin:3px 0}
+.node-row{
+  display:flex;align-items:flex-start;gap:0;
+  border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--shadow-sm);cursor:pointer;
+  transition:all .15s;position:relative;background:var(--surface);
+}
+.node-row:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.node-row:active{transform:translateY(0)}
+.node-row.search-hit{box-shadow:0 0 0 2px var(--accent),var(--shadow-md)}
+.node-row.search-hit-focus{box-shadow:0 0 0 3px var(--accent),0 0 20px rgba(59,130,246,.3)}
+.level-bar{width:4px;flex-shrink:0;align-self:stretch}
+.node-content{flex:1;padding:8px 10px;min-width:0}
+.node-header{display:flex;align-items:center;gap:6px}
+.node-code{
+  font-family:var(--font-mono);font-size:11px;font-weight:600;
+  flex-shrink:0;padding:2px 6px;border-radius:5px;
+}
+.node-cn{font-size:13px;font-weight:600;flex:1;min-width:0}
+.node-en{font-size:10px;margin-top:2px;opacity:.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.children-count{
+  font-size:10px;background:#f1f5f9;color:var(--text2);
+  padding:1px 6px;border-radius:10px;flex-shrink:0;
+}
+.toggle-btn{font-size:12px;color:var(--text2);flex-shrink:0;padding:0 2px}
+.children{padding-left:12px}
+.children.hidden{display:none}
+
+/* Level colors */
+.l1 .level-bar{background:var(--l1)}.l1 .node-code{background:var(--l1-bg);color:var(--l1)}
+.l2 .level-bar{background:var(--l2)}.l2 .node-code{background:var(--l2-bg);color:var(--l2)}
+.l3 .level-bar{background:var(--l3)}.l3 .node-code{background:var(--l3-bg);color:var(--l3)}
+.l4 .level-bar{background:var(--l4)}.l4 .node-code{background:var(--l4-bg);color:var(--l4)}
+.l5 .level-bar{background:var(--l5)}.l5 .node-code{background:var(--l5-bg);color:var(--l5)}
+
+/* ═══════════════════════════════════════════════════ */
+/*  MODAL                                              */
+/* ═══════════════════════════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(15,23,42,.6);
+  z-index:300;display:none;align-items:flex-end;
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--surface);border-radius:20px 20px 0 0;
+  width:100%;padding:20px;max-height:85vh;overflow-y:auto;
+  animation:slideUp .3s cubic-bezier(.16,1,.3,1);
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal-code{font-family:var(--font-mono);font-size:22px;font-weight:700;margin-bottom:4px}
+.modal-cn{font-size:18px;font-weight:600;margin-bottom:6px}
+.modal-en{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5}
+.modal-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.meta-tag{padding:4px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.modal-close{float:right;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);margin-top:-4px}
+.modal-close:hover{color:var(--text)}
+.modal-path{font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.8}
+.modal-path span{background:var(--bg);padding:2px 6px;border-radius:4px;margin-right:4px}
+
+/* Modal drug link */
+.drug-link{
+  color:var(--accent);cursor:pointer;
+  border-bottom:1px dashed var(--accent);
+  transition:color .15s;
+}
+.drug-link:hover{color:#1d4ed8}
+
+/* ── 3D Viewer ── */
+.mol3d-section{margin-top:16px;border-top:1px solid var(--border);padding-top:16px}
+.mol3d-section-title{
+  display:flex;align-items:center;gap:8px;
+  font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text);
+}
+.mol3d-section-title svg{width:18px;height:18px;color:var(--accent)}
+.mol3d-container{
+  position:relative;width:100%;height:320px;
+  border-radius:var(--radius);overflow:hidden;
+  background:#ffffff;border:1px solid var(--border);
+}
+.mol3d-container canvas{width:100%!important;height:100%!important}
+.mol3d-placeholder{
+  display:flex;align-items:center;justify-content:center;
+  height:100%;color:#475569;font-size:13px;text-align:center;
+  padding:20px;line-height:1.6;
+}
+.mol3d-loading{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  height:100%;color:#94a3b8;font-size:13px;
+}
+.atom-legend{
+  display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;
+  padding:8px 12px;background:var(--bg);border-radius:8px;
+}
+.atom-legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
+.atom-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(0,0,0,.1)}
+
+/* ── Compare mode ── */
+.compare-toggle{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:8px;padding:6px 12px;border-radius:7px;
+  background:var(--bg);border:1px solid var(--border);
+  font-size:12px;color:var(--text2);cursor:pointer;
+  transition:all .15s;
+}
+.compare-toggle:hover{border-color:var(--accent);color:var(--accent)}
+.compare-toggle.active{background:#eff6ff;border-color:var(--accent);color:var(--accent)}
+.compare-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;
+}
+.compare-single{grid-template-columns:1fr}
+@media(max-width:599px){.compare-grid{grid-template-columns:1fr}}
+.compare-panel{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.compare-panel-header{
+  padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);
+  font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px;
+}
+.compare-panel .mol3d-container{height:260px;border:none;border-radius:0}
+
+/* ── SMILES box ── */
+.smiles-box{
+  font-family:var(--font-mono);font-size:12px;
+  padding:10px 12px;background:#faf7f2;color:#3d3529;
+  border-radius:8px;word-break:break-all;line-height:1.5;
+  position:relative;border:1px solid #e8e0d0;
+}
+.smiles-copy{
+  position:absolute;top:6px;right:6px;
+  background:#ede6da;border:none;color:#6b5d4a;
+  padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;
+  font-family:var(--font-body);
+}
+.smiles-copy:hover{background:#ddd5c5;color:#3d3529}
+
+/* ── Similar drugs ── */
+.similar-section{margin-top:16px}
+.similar-cards{display:grid;gap:8px}
+.similar-card{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 12px;border-radius:8px;
+  background:var(--bg);border:1px solid var(--border);
+  cursor:pointer;transition:all .15s;
+}
+.similar-card:hover{border-color:var(--accent);box-shadow:var(--shadow-sm)}
+.similar-card-info{flex:1;min-width:0}
+.similar-card-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.similar-card-code{font-family:var(--font-mono);font-size:11px;color:var(--text2)}
+.similar-score{
+  font-size:13px;font-weight:700;padding:4px 10px;
+  border-radius:20px;flex-shrink:0;
+}
+.similar-score.high{background:#dcfce7;color:#166534}
+.similar-score.mid{background:#fef9c3;color:#854d0e}
+.sim-progress{font-size:12px;color:var(--text2);padding:8px 0}
+.no-mol-data{
+  text-align:center;padding:20px;color:var(--text2);font-size:13px;
+  background:var(--bg);border-radius:8px;line-height:1.6;
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  NEBULA GRAPH                                       */
+/* ═══════════════════════════════════════════════════ */
+.nebula-overlay{
+  position:fixed;inset:0;z-index:400;background:#0a0a1a;
+  display:none;flex-direction:column;
+}
+.nebula-overlay.open{display:flex}
+.nebula-header{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;background:rgba(15,23,42,.95);
+  border-bottom:1px solid #1e293b;flex-shrink:0;
+}
+.nebula-close{
+  background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;
+  padding:4px 8px;
+}
+.nebula-close:hover{color:#fff}
+.nebula-title{font-size:15px;font-weight:600;color:#fff;flex:1}
+.nebula-controls{display:flex;gap:6px;align-items:center}
+.nebula-btn{
+  padding:5px 12px;border-radius:6px;border:1px solid #334155;
+  background:#1e293b;color:#94a3b8;font-size:11px;cursor:pointer;
+  font-family:var(--font-body);transition:all .15s;
+}
+.nebula-btn:hover{background:#334155;color:#fff}
+.nebula-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.nebula-search{
+  padding:6px 12px;border-radius:6px;border:1px solid #334155;
+  background:#1e293b;color:#e2e8f0;font-size:12px;
+  font-family:var(--font-body);outline:none;width:180px;
+}
+.nebula-search:focus{border-color:var(--accent)}
+.nebula-canvas{flex:1;position:relative;overflow:hidden}
+.nebula-canvas canvas{width:100%!important;height:100%!important}
+.nebula-tooltip{
+  position:absolute;display:none;
+  background:rgba(15,23,42,.95);border:1px solid #334155;
+  color:#e2e8f0;padding:8px 12px;border-radius:8px;
+  font-size:12px;pointer-events:none;z-index:10;
+  box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:260px;
+}
+.nebula-loading{
+  position:absolute;inset:0;display:flex;
+  align-items:center;justify-content:center;
+  color:#94a3b8;font-size:14px;gap:10px;
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  OVERVIEW (Treemap + Sunburst)                      */
+/* ═══════════════════════════════════════════════════ */
+.ov-overlay{
+  position:fixed;inset:0;z-index:350;
+  background:#0a0a1a;display:none;flex-direction:column;
+}
+.ov-overlay[style*="display: flex"]{display:flex}
+.ov-topbar{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;background:rgba(15,23,42,.95);
+  border-bottom:1px solid #1e293b;flex-shrink:0;
+}
+.ov-close{background:none;border:none;color:#94a3b8;font-size:20px;cursor:pointer;padding:4px 8px}
+.ov-close:hover{color:#fff}
+.ov-tabtitle{color:#fff;font-size:14px;font-weight:600;flex:1}
+.ov-tabs{display:flex;gap:4px}
+.ov-tab{
+  padding:5px 14px;border-radius:6px;border:1px solid #334155;
+  background:transparent;color:#94a3b8;font-size:12px;cursor:pointer;
+  font-family:var(--font-body);
+}
+.ov-tab:hover{background:#1e293b;color:#fff}
+.ov-tab.active,.ov-actbtn{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important}
+.ov-body{flex:1;display:flex;overflow:hidden;position:relative}
+.ov-wrap{flex:1;display:none;flex-direction:column;overflow:hidden}
+.ov-wrap.active{display:flex}
+.ov-infobar{
+  padding:6px 16px;font-size:11px;color:#94a3b8;
+  background:rgba(15,23,42,.8);border-top:1px solid #1e293b;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+.ov-bc{cursor:pointer;color:#60a5fa;transition:color .15s}
+.ov-bc:hover{color:#93c5fd}
+.ov-bccur{color:#fff;font-weight:600}
+.ov-sep{color:#475569;margin:0 2px}
+.ov-toolbar{
+  display:flex;gap:4px;padding:6px 16px;
+  background:rgba(15,23,42,.6);border-bottom:1px solid #1e293b;
+}
+.ov-tbtn{
+  padding:3px 10px;border-radius:4px;border:1px solid #334155;
+  background:transparent;color:#94a3b8;font-size:11px;cursor:pointer;
+}
+.ov-tbtn:hover{background:#1e293b;color:#fff}
+.ov-canvaswrap{flex:1;position:relative;overflow:hidden}
+.ov-tip{
+  position:absolute;display:none;
+  background:rgba(15,23,42,.95);border:1px solid #334155;
+  color:#fff;padding:6px 10px;border-radius:6px;
+  font-size:12px;pointer-events:none;z-index:10;
+  box-shadow:0 4px 12px rgba(0,0,0,.5);
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  BACK TO TOP                                        */
+/* ═══════════════════════════════════════════════════ */
+.back-top{
+  position:fixed;bottom:20px;right:16px;z-index:90;
+  width:40px;height:40px;border-radius:50%;
+  background:var(--accent);color:#fff;border:none;
+  font-size:18px;cursor:pointer;box-shadow:var(--shadow-md);
+  display:none;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+.back-top:hover{transform:scale(1.1);background:#2563eb}
+.back-top.show{display:flex}
+
+/* ═══════════════════════════════════════════════════ */
+/*  SPINNER                                            */
+/* ═══════════════════════════════════════════════════ */
+.spinner{
+  width:18px;height:18px;border:2px solid rgba(148,163,184,.3);
+  border-top-color:#60a5fa;border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════════════════════════════════════════ */
+/*  RESPONSIVE                                         */
+/* ═══════════════════════════════════════════════════ */
+@media(min-width:600px){
+  .header{padding:20px 24px}
+  .modal-overlay{align-items:center}
+  .modal{border-radius:16px;max-width:620px;margin:auto;max-height:80vh}
+}
+@media(min-width:900px){
+  .header{padding:20px 32px 16px}
+  .toolbar{padding:8px 32px}
+  .page-shell{
+    display:grid;grid-template-columns:240px 1fr;
+    background:var(--surface);min-height:calc(100vh - 200px);
+    border-top:1px solid var(--border);
+  }
+  .sidebar{
+    display:flex;flex-direction:column;background:#fafbfc;
+    border-right:1px solid var(--border);
+    position:sticky;top:var(--top-h,200px);
+    height:calc(100vh - var(--top-h,200px));overflow-y:auto;
+  }
+  .legend{flex-direction:column;gap:3px;padding:14px;border-bottom:1px solid var(--border)}
+  .tree-container{padding:16px 36px 80px;background:var(--surface)}
+  .header-title h1{font-size:22px}
+  .stats{gap:10px;max-width:460px}
+  .back-top{right:32px}
+}
+@media(min-width:1280px){
+  .header{padding:20px 48px 16px}
+  .toolbar{padding:8px 48px}
+  .page-shell{grid-template-columns:270px 1fr}
+  .tree-container{padding:20px 48px 80px}
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  SCROLLBAR                                          */
+/* ═══════════════════════════════════════════════════ */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#94a3b8}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+  <div class="loading-icon">🐳</div>
+  <div style="font-size:18px;font-weight:600">药物ATC分类智能分析平台</div>
+  <div class="loading-bar"><div class="loading-fill" id="loadFill"></div></div>
+  <div class="loading-text" id="loadText">正在初始化数据...</div>
+</div>
+
+<!-- HEADER -->
+<div class="header" id="headerEl">
+  <div class="header-top">
+    <span class="header-icon">🐳</span>
+    <div class="header-title">
+      <h1>药物ATC分类智能分析平台</h1>
+      <p>WHO解剖学治疗化学分类 · 化学信息学可视化 · 结构相似度引擎</p>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat-badge"><div class="num">14</div><div class="lbl">大类</div></div>
+    <div class="stat-badge"><div class="num">94</div><div class="lbl">治疗类</div></div>
+    <div class="stat-badge"><div class="num">271</div><div class="lbl">药理类</div></div>
+    <div class="stat-badge"><div class="num">938</div><div class="lbl">化学类</div></div>
+    <div class="stat-badge"><div class="num">5581</div><div class="lbl">药品</div></div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="搜索药品名称、ATC编码..." autocomplete="off">
+    <button class="clear-btn" id="clearBtn" onclick="clearSearch()">✕</button>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar" id="toolbarEl">
+  <button class="btn nebula-btn" onclick="openNebula()">🌌 星云图</button>
+  <button class="btn overview-btn" onclick="openMindMap()">🌐 全局概览</button>
+  <button class="btn primary" onclick="expandAll()">⊞ 展开</button>
+  <button class="btn" onclick="collapseAll()">⊟ 折叠</button>
+  <button class="btn" onclick="expandLevel(2)">L2</button>
+  <button class="btn" onclick="expandLevel(3)">L3</button>
+  <span class="result-count" id="resultCount"></span>
+  <div id="srNav" style="display:none;align-items:center;gap:4px;margin-left:4px;">
+    <button class="btn" onclick="searchNavTo(_srIdx-1)" style="padding:4px 8px;font-size:12px;">↑</button>
+    <span id="srPos" style="font-size:11px;color:var(--text2);min-width:40px;text-align:center;"></span>
+    <button class="btn" onclick="searchNavTo(_srIdx+1)" style="padding:4px 8px;font-size:12px;">↓</button>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="page-shell">
+  <div class="sidebar">
+    <div class="legend" id="legendEl">
+      <div class="legend-item" onclick="toggleLevel(1,this)"><div class="legend-dot" style="background:var(--l1-border)"></div>解剖学大类</div>
+      <div class="legend-item" onclick="toggleLevel(2,this)"><div class="legend-dot" style="background:var(--l2-border)"></div>治疗大类</div>
+      <div class="legend-item" onclick="toggleLevel(3,this)"><div class="legend-dot" style="background:var(--l3-border)"></div>治疗/药理学小类</div>
+      <div class="legend-item" onclick="toggleLevel(4,this)"><div class="legend-dot" style="background:var(--l4-border)"></div>化学小类</div>
+      <div class="legend-item" onclick="toggleLevel(5,this)"><div class="legend-dot" style="background:var(--l5-border)"></div>药品</div>
+    </div>
+    <div style="padding:14px;border-bottom:1px solid var(--border);">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px">🧬 SMILES覆盖</div>
+      <div style="font-size:20px;font-weight:700;color:var(--l5)">4646</div>
+      <div style="font-size:11px;color:var(--text2)">/ 5581 药品 (83.2%)</div>
+    </div>
+  </div>
+  <div class="tree-container" id="treeContainer"></div>
+</div>
+
+<!-- BACK TO TOP -->
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- OVERVIEW -->
+<div class="ov-overlay" id="ovOverlay">
+  <div class="ov-topbar">
+    <button class="ov-close" onclick="closeMindMap()">✕</button>
+    <span class="ov-tabtitle">全局概览</span>
+    <div class="ov-tabs">
+      <button class="ov-tab active" id="ovBtn-tm" onclick="setOvMode('tm')">矩阵树图</button>
+      <button class="ov-tab" id="ovBtn-sb" onclick="setOvMode('sb')">旭日图</button>
+    </div>
+  </div>
+  <div class="ov-body">
+    <div class="ov-wrap active" id="ov-tm-wrap">
+      <div class="ov-infobar"><span id="ov-tm-bc"></span><span id="ov-tm-info" style="margin-left:auto"></span></div>
+      <div class="ov-toolbar" id="ov-tm-controls">
+        <button class="ov-tbtn" id="tmBack">◂ 返回上级</button>
+        <button class="ov-tbtn" id="tmReset">重置</button>
+      </div>
+      <div class="ov-canvaswrap" id="ov-tm-canvas-wrap"><canvas id="tmCv"></canvas><div class="ov-tip" id="ovTip"></div></div>
+      <div id="ovHint" style="position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:11px;color:#64748b;pointer-events:none"></div>
+    </div>
+    <div class="ov-wrap" id="ov-sb-wrap">
+      <div class="ov-infobar"><span id="ov-sb-bc"></span><span id="ov-sb-info" style="margin-left:auto"></span></div>
+      <div class="ov-toolbar" id="ov-sb-controls">
+        <button class="ov-tbtn sb-dbtn" id="sbD2">2级</button>
+        <button class="ov-tbtn sb-dbtn ov-actbtn" id="sbD3">3级</button>
+        <button class="ov-tbtn sb-dbtn" id="sbD4">4级</button>
+        <button class="ov-tbtn sb-dbtn" id="sbD5">5级</button>
+        <button class="ov-tbtn" id="sbReset" style="margin-left:8px">重置</button>
+      </div>
+      <div class="ov-canvaswrap" id="ov-sb-canvas-wrap"><canvas id="sbCv"></canvas><div class="ov-tip" id="sbTip"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- NEBULA GRAPH -->
+<div class="nebula-overlay" id="nebulaOverlay">
+  <div class="nebula-header">
+    <button class="nebula-close" onclick="closeNebula()">✕</button>
+    <span class="nebula-title">🌌 药物关联星云图</span>
+    <div class="nebula-controls">
+      <input type="text" class="nebula-search" id="nebulaSearch" placeholder="搜索药物..." autocomplete="off">
+      <button class="nebula-btn active" id="nbBtnAtc" onclick="setNebulaMode('atc')">ATC分类</button>
+      <button class="nebula-btn" id="nbBtnSim" onclick="setNebulaMode('sim')">结构相似</button>
+    </div>
+  </div>
+  <div class="nebula-canvas" id="nebulaCanvas">
+    <canvas id="nebulaCanvasEl"></canvas>
+    <div class="nebula-tooltip" id="nebulaTip"></div>
+    <div class="nebula-loading" id="nebulaLoading"><div class="spinner"></div><span>构建星云图...</span></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<!--  SCRIPTS                                         -->
+<!-- ════════════════════════════════════════════════ -->
+<script src="tree-data.js"></script>
+<script src="molblocks-0.js"></script>
+<script src="molblocks-1.js"></script>
+<script src="molblocks-2.js"></script>
+<script src="molblocks-3.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════ */
+/*  CORE: Data indexing & tree rendering               */
+/* ═══════════════════════════════════════════════════ */
+const codeMap = {};
+const levelNames = ['','解剖学大类','治疗大类','治疗/药理学小类','化学小类','药品'];
+const levelColors = ['','#0f172a','#1e40af','#065f46','#c2410c','#6b21a8'];
+const levelBg = ['','#e2e8f0','#dbeafe','#d1fae5','#ffedd5','#f3e8ff'];
+
+function buildMap(nodes, parent=null) {
+  for (const n of nodes) {
+    codeMap[n.code] = { ...n, parentCode: parent };
+    if (n.children) buildMap(n.children, n.code);
+  }
+}
+buildMap(TREE);
+
+function getPath(code) {
+  const path = [];
+  let cur = code;
+  while (cur) { path.unshift(codeMap[cur]); cur = codeMap[cur]?.parentCode; }
+  return path;
+}
+
+/* ═══ Loading progress ═══ */
+const loadFill = document.getElementById('loadFill');
+const loadText = document.getElementById('loadText');
+function setLoad(pct, text) {
+  loadFill.style.width = pct + '%';
+  if (text) loadText.textContent = text;
+}
+setLoad(30, '构建索引...');
+
+/* ═══ Tree rendering ═══ */
+let expandedSet = new Set();
+let searchMode = false;
+
+function renderTree(nodes, container, depth=0) {
+  for (const node of nodes) {
+    const hasChildren = node.children && node.children.length > 0;
+    const isExpanded = expandedSet.has(node.code);
+    const nodeEl = document.createElement('div');
+    nodeEl.className = 'node';
+    nodeEl.dataset.code = node.code;
+    nodeEl.dataset.level = node.level;
+
+    const row = document.createElement('div');
+    row.className = `node-row l${node.level}`;
+
+    const bar = document.createElement('div');
+    bar.className = 'level-bar';
+
+    const content = document.createElement('div');
+    content.className = 'node-content';
+
+    const header = document.createElement('div');
+    header.className = 'node-header';
+
+    const codeEl = document.createElement('span');
+    codeEl.className = 'node-code';
+    codeEl.textContent = node.code;
+
+    const cnEl = document.createElement('span');
+    cnEl.className = 'node-cn';
+    cnEl.textContent = node.cn;
+
+    header.appendChild(codeEl);
+    header.appendChild(cnEl);
+
+    if (hasChildren) {
+      const cnt = document.createElement('span');
+      cnt.className = 'children-count';
+      cnt.textContent = node.children.length;
+      header.appendChild(cnt);
+      const tog = document.createElement('span');
+      tog.className = 'toggle-btn';
+      tog.textContent = isExpanded ? '▾' : '▸';
+      tog.dataset.for = node.code;
+      header.appendChild(tog);
+    }
+    content.appendChild(header);
+
+    if (node.en) {
+      const enEl = document.createElement('div');
+      enEl.className = 'node-en';
+      enEl.textContent = node.en;
+      content.appendChild(enEl);
+    }
+    row.appendChild(bar);
+    row.appendChild(content);
+    nodeEl.appendChild(row);
+
+    if (hasChildren) {
+      const childContainer = document.createElement('div');
+      childContainer.className = 'children';
+      childContainer.id = 'c_' + node.code;
+      if (!isExpanded) childContainer.classList.add('hidden');
+      renderTree(node.children, childContainer, depth+1);
+      nodeEl.appendChild(childContainer);
+      row.addEventListener('click', () => {
+        if (searchMode) { showModal(node.code); return; }
+        toggleNode(node.code);
+      });
+    } else {
+      row.addEventListener('click', () => showModal(node.code));
+    }
+    container.appendChild(nodeEl);
+  }
+}
+
+function toggleNode(code) {
+  const childEl = document.getElementById('c_' + code);
+  if (!childEl) return;
+  const togEl = document.querySelector(`.toggle-btn[data-for="${code}"]`);
+  if (expandedSet.has(code)) {
+    expandedSet.delete(code);
+    childEl.classList.add('hidden');
+    if (togEl) togEl.textContent = '▸';
+  } else {
+    expandedSet.add(code);
+    childEl.classList.remove('hidden');
+    if (togEl) togEl.textContent = '▾';
+  }
+}
+
+function expandAll() {
+  Object.keys(codeMap).forEach(c => {
+    const childEl = document.getElementById('c_' + c);
+    if (childEl) {
+      expandedSet.add(c);
+      childEl.classList.remove('hidden');
+      const tog = document.querySelector(`.toggle-btn[data-for="${c}"]`);
+      if (tog) tog.textContent = '▾';
+    }
+  });
+}
+
+function collapseAll() {
+  expandedSet.clear();
+  document.querySelectorAll('.children').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.toggle-btn').forEach(el => el.textContent = '▸');
+}
+
+function expandLevel(maxLevel) {
+  collapseAll();
+  Object.keys(codeMap).forEach(c => {
+    const node = codeMap[c];
+    if (node.level < maxLevel) {
+      const childEl = document.getElementById('c_' + c);
+      if (childEl) {
+        expandedSet.add(c);
+        childEl.classList.remove('hidden');
+        const tog = document.querySelector(`.toggle-btn[data-for="${c}"]`);
+        if (tog) tog.textContent = '▾';
+      }
+    }
+  });
+}
+
+function expandToNode(code) {
+  const path = getPath(code);
+  path.forEach(nodeObj => {
+    const nc = nodeObj?.code || nodeObj;
+    const childEl = document.getElementById('c_' + nc);
+    if (childEl) {
+      expandedSet.add(nc);
+      childEl.classList.remove('hidden');
+      const tog = document.querySelector(`.toggle-btn[data-for="${nc}"]`);
+      if (tog) tog.textContent = '▾';
+    }
+  });
+}
+
+/* ═══ Search ═══ */
+let searchTimeout;
+let _srResults = [];
+let _srIdx = -1;
+
+document.getElementById('searchInput').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => doSearch(this.value.trim()), 280);
+  document.getElementById('clearBtn').style.display = this.value ? 'block' : 'none';
+});
+
+document.getElementById('searchInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (_srResults.length) searchNavTo(_srIdx + (e.shiftKey ? -1 : 1));
+  }
+});
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clearBtn').style.display = 'none';
+  doSearch('');
+}
+
+function doSearch(q) {
+  document.querySelectorAll('.node-row.search-hit').forEach(el => {
+    el.classList.remove('search-hit', 'search-hit-focus');
+  });
+  // Restore highlighted text
+  document.querySelectorAll('.hl-mark').forEach(el => {
+    el.replaceWith(document.createTextNode(el.textContent));
+  });
+
+  const rc = document.getElementById('resultCount');
+  const nav = document.getElementById('srNav');
+  _srResults = [];
+  _srIdx = -1;
+
+  if (!q) {
+    searchMode = false;
+    rc.textContent = '';
+    nav.style.display = 'none';
+    collapseAll();
+    return;
+  }
+
+  searchMode = true;
+  const ql = q.toLowerCase();
+  const hits = [];
+  Object.values(codeMap).forEach(node => {
+    if (node.code.toLowerCase().includes(ql) ||
+        (node.cn && node.cn.toLowerCase().includes(ql)) ||
+        (node.en && node.en.toLowerCase().includes(ql))) {
+      hits.push(node);
+    }
+  });
+
+  if (hits.length === 0) {
+    rc.textContent = '无结果';
+    nav.style.display = 'none';
+    return;
+  }
+
+  collapseAll();
+  hits.forEach(node => expandToNode(node.code));
+
+  hits.forEach(node => {
+    const row = document.querySelector(`.node[data-code="${node.code}"] > .node-row`);
+    if (row) {
+      row.classList.add('search-hit');
+      _srResults.push(node);
+    }
+  });
+
+  // Highlight matching text
+  hits.forEach(node => {
+    const row = document.querySelector(`.node[data-code="${node.code}"] > .node-row`);
+    if (!row) return;
+    const cnEl = row.querySelector('.node-cn');
+    if (cnEl && cnEl.textContent.toLowerCase().includes(ql)) {
+      cnEl.innerHTML = highlight(cnEl.textContent, q);
+    }
+  });
+
+  rc.textContent = `${hits.length} 个结果`;
+  nav.style.display = hits.length > 1 ? 'flex' : 'none';
+  if (hits.length > 0) searchNavTo(0);
+}
+
+function searchNavTo(idx) {
+  if (_srResults.length === 0) return;
+  idx = ((idx % _srResults.length) + _srResults.length) % _srResults.length;
+  // Remove previous focus
+  document.querySelectorAll('.search-hit-focus').forEach(el => el.classList.remove('search-hit-focus'));
+  _srIdx = idx;
+  const node = _srResults[idx];
+  const row = document.querySelector(`.node[data-code="${node.code}"] > .node-row`);
+  if (row) {
+    row.classList.add('search-hit-focus');
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  document.getElementById('srPos').textContent = `${idx+1}/${_srResults.length}`;
+}
+
+function highlight(text, q) {
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return escHtml(text);
+  return escHtml(text.slice(0, idx)) +
+    '<span class="hl-mark" style="background:#fef08a;color:#854d0e;padding:0 1px;border-radius:2px;">' +
+    escHtml(text.slice(idx, idx + q.length)) + '</span>' +
+    escHtml(text.slice(idx + q.length));
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ═══ Header height measurement ═══ */
+function updateHeaderHeight() {
+  const h = document.getElementById('headerEl');
+  const t = document.getElementById('toolbarEl');
+  if (h && t) {
+    const hh = h.offsetHeight;
+    document.documentElement.style.setProperty('--header-h', hh + 'px');
+    document.documentElement.style.setProperty('--top-h', (hh + t.offsetHeight) + 'px');
+    t.style.top = hh + 'px';
+  }
+}
+
+/* ═══ Level toggle ═══ */
+function toggleLevel(level, el) {
+  el.classList.toggle('active');
+  const active = el.classList.contains('active');
+  document.querySelectorAll(`.node[data-level="${level}"]`).forEach(n => {
+    n.style.display = active ? 'none' : '';
+  });
+}
+
+/* ═══ Back to top ═══ */
+window.addEventListener('scroll', () => {
+  document.getElementById('backTop').classList.toggle('show', window.scrollY > 400);
+});
+
+/* ═══════════════════════════════════════════════════ */
+/*  UTILITY FUNCTIONS                                  */
+/* ═══════════════════════════════════════════════════ */
+function isCombo(en) {
+  if (!en) return true;
+  const l = en.toLowerCase();
+  return l.includes(' and ') || l.includes(', combinations') || l.includes('combinations of') ||
+    l.includes('various') || l.includes('other ') || l.includes('multivitamins');
+}
+
+function metaSearchLink(name) {
+  const q = encodeURIComponent(`${name} 核心特性、作用机制、临床应用、药物相互作用、研发及合成演进历程和药代动力学`);
+  return `https://metaso.cn/?q=${q}`;
+}
+
+function drugLink(name, cls) {
+  cls = cls || '';
+  const url = metaSearchLink(name);
+  return `<a class="drug-link ${cls}" href="${url}" target="_blank" rel="noopener">${escHtml(name)}</a>`;
+}
+
+function pubchemImgUrl(name) {
+  return `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(name)}/PNG?image_size=300x200`;
+}
+
+function getL5Drugs() {
+  const drugs = [];
+  Object.values(codeMap).forEach(n => {
+    if (n.level === 5 && n.en && !isCombo(n.en)) drugs.push(n);
+  });
+  return drugs;
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  SIMILARITY ENGINE (main-thread, chunked async)     */
+/* ═══════════════════════════════════════════════════ */
+const _fpIndex = {};   // code -> Uint8Array fingerprint
+let _fpIndexReady = false;
+
+/* ── Fingerprint: 256-byte hash from SMILES n-grams ── */
+function smilesFP(smi) {
+  const fp = new Uint8Array(256);
+  if (!smi) return fp;
+  for (let i = 0; i < smi.length - 1; i++) {
+    const p = smi.charCodeAt(i) * 131 + smi.charCodeAt(i+1);
+    fp[p & 255] |= (1 << ((p >>> 8) & 7));
+  }
+  for (let i = 0; i < smi.length - 2; i++) {
+    const t = smi.charCodeAt(i) * 17161 + smi.charCodeAt(i+1) * 131 + smi.charCodeAt(i+2);
+    fp[t & 255] |= (1 << ((t >>> 8) & 7));
+  }
+  return fp;
+}
+
+/* popcount for a single byte */
+function pc8(x) { x -= (x >>> 1) & 0x55; x = (x & 0x33) + ((x >>> 2) & 0x33); return (x + (x >>> 4)) & 0x0F; }
+
+/* Tanimoto similarity between two Uint8Array fingerprints */
+function tanimotoFP(a, b) {
+  let ab = 0, ob = 0;
+  for (let i = 0; i < 256; i++) { ab += pc8(a[i] & b[i]); ob += pc8(a[i] | b[i]); }
+  return ob === 0 ? 0 : ab / ob;
+}
+
+/* Build index in async chunks to keep UI responsive */
+function initSimEngine() {
+  const drugs = [];
+  Object.values(codeMap).forEach(n => {
+    if (n.level === 5 && n.smiles) drugs.push(n);
+  });
+  const total = drugs.length;
+  let i = 0;
+  const CHUNK = 400;
+
+  function step() {
+    const end = Math.min(i + CHUNK, total);
+    for (; i < end; i++) {
+      const d = drugs[i];
+      _fpIndex[d.code] = smilesFP(d.smiles);
+    }
+    const pct = 50 + Math.round((i / total) * 40);
+    setLoad(pct, `构建指纹索引 ${i}/${total}...`);
+
+    if (i < total) {
+      setTimeout(step, 0);         // yield to browser
+    } else {
+      _fpIndexReady = true;
+      setLoad(95, `索引完成: ${Object.keys(_fpIndex).length} 个药物指纹`);
+      finishLoading();
+    }
+  }
+  setLoad(50, '构建指纹索引...');
+  setTimeout(step, 0);
+}
+
+/* Search similar drugs — returns Promise, runs in async chunks */
+function findSimilarDrugs(code, smiles, threshold) {
+  return new Promise(resolve => {
+    if (!_fpIndexReady) { resolve([]); return; }
+    const targetFp = smilesFP(smiles);
+    const entries = Object.keys(_fpIndex);
+    const results = [];
+    let i = 0;
+    const CHUNK = 800;
+
+    function step() {
+      const end = Math.min(i + CHUNK, entries.length);
+      for (; i < end; i++) {
+        const c = entries[i];
+        if (c === code) continue;
+        const sim = tanimotoFP(targetFp, _fpIndex[c]);
+        if (sim >= threshold) results.push({ code: c, sim });
+      }
+      // update UI progress
+      const prog = document.getElementById('simProgress');
+      if (prog) prog.textContent = `正在扫描... ${i}/${entries.length}`;
+
+      if (i < entries.length) {
+        setTimeout(step, 0);
+      } else {
+        results.sort((a, b) => b.sim - a.sim);
+        resolve(results);
+      }
+    }
+    setTimeout(step, 0);
+  });
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  MOLECULAR VIEWER                                    */
+/*  Primary: 3Dmol.js + pre-computed MolBlock (RDKit)  */
+/*  Fallback: SmilesDrawer 2D                          */
+/* ═══════════════════════════════════════════════════ */
+let _3dmolLoaded = false;
+let _3dmolLoading = false;
+
+function load3Dmol() {
+  if (_3dmolLoaded) return Promise.resolve();
+  if (_3dmolLoading) return _3dmolLoadPromise;
+  _3dmolLoading = true;
+  _3dmolLoadPromise = new Promise((resolve, reject) => {
+    const jq = document.createElement('script');
+    jq.src = 'https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js';
+    jq.onload = () => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.2/3Dmol-min.js';
+      s.onload = () => { _3dmolLoaded = true; _3dmolLoading = false; resolve(); };
+      s.onerror = () => { _3dmolLoading = false; reject(new Error('3Dmol.js 加载失败')); };
+      document.head.appendChild(s);
+    };
+    jq.onerror = () => { _3dmolLoading = false; reject(new Error('jQuery 加载失败')); };
+    document.head.appendChild(jq);
+  });
+  return _3dmolLoadPromise;
+}
+let _3dmolLoadPromise = null;
+
+let _smiDrawerLoaded = false;
+function loadSmilesDrawer() {
+  if (_smiDrawerLoaded) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/smiles-drawer/2.1.8/smiles-drawer.min.js';
+    s.onload = () => { _smiDrawerLoaded = true; resolve(); };
+    s.onerror = () => reject(new Error('SmilesDrawer load failed'));
+    document.head.appendChild(s);
+  });
+}
+
+async function render3D(containerId, smiles, options = {}) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const drugCode = options.drugCode || '';
+
+  container.innerHTML = '<div class="mol3d-loading"><div class="spinner"></div><span>加载3D模型...</span></div>';
+
+  // Check if we have pre-computed MolBlock
+  const molblock = (typeof MOLBLOCKS !== 'undefined') && drugCode && MOLBLOCKS[drugCode];
+
+  /* ── Strategy 1: 3Dmol.js with pre-computed MolBlock ── */
+  if (molblock) {
+    try {
+      await load3Dmol();
+      container.innerHTML = '';
+
+      const viewer = $3Dmol.createViewer(container, {
+        backgroundColor: '#ffffff',
+        antialias: true,
+      });
+
+      viewer.addModel(molblock, "mol");
+      viewer.setStyle({}, {
+        stick: { radius: 0.15, colorscheme: 'Jmol' },
+        sphere: { scale: 0.25, colorscheme: 'Jmol' }
+      });
+      viewer.zoomTo();
+      viewer.render();
+
+      // Auto-rotate
+      let rotating = true;
+      let animFrame;
+      function autoRotate() {
+        if (!rotating) return;
+        viewer.rotate(0.5, 'y');
+        viewer.render();
+        animFrame = requestAnimationFrame(autoRotate);
+      }
+      autoRotate();
+
+      // Stop on user interaction
+      const stopFn = () => { rotating = false; cancelAnimationFrame(animFrame); };
+      container.addEventListener('mousedown', stopFn, { once: true });
+      container.addEventListener('touchstart', stopFn, { once: true });
+
+      container._viewer = viewer;
+      container._stopRotation = stopFn;
+      return; // success!
+
+    } catch(err) {
+      console.warn('3Dmol.js failed, falling back to 2D:', err);
+    }
+  }
+
+  /* ── Strategy 2: SmilesDrawer 2D (fully local) ── */
+  try {
+    await loadSmilesDrawer();
+    container.innerHTML = '';
+
+    const canvas = document.createElement('canvas');
+    const cw = Math.min(container.clientWidth || 400, 500);
+    const ch = Math.min(container.clientHeight || 300, 360);
+    canvas.width = cw * 2;
+    canvas.height = ch * 2;
+    canvas.style.cssText = `width:${cw}px;height:${ch}px;display:block;margin:0 auto;`;
+    container.appendChild(canvas);
+
+    const drawer = new SmilesDrawer.SmiDrawer({
+      width: cw * 2, height: ch * 2,
+      bondThickness: 1.5, fontSizeLarge: 11, fontSizeSmall: 6, padding: 30,
+    });
+    SmilesDrawer.parse(smiles, function(tree) {
+      drawer.draw(tree, canvas, 'light');
+    }, function(err) {
+      container.innerHTML = `<div class="mol3d-placeholder">SMILES解析失败</div>`;
+    });
+
+    // If no molblock available, show why it's 2D + external links
+    if (!molblock) {
+      const note = document.createElement('div');
+      note.style.cssText = 'text-align:center;margin-top:6px;font-size:11px;color:#64748b;';
+      note.textContent = '2D结构图（该药物无预计算3D坐标）';
+      container.appendChild(note);
+    }
+
+    container._stopRotation = () => {};
+
+  } catch(err) {
+    container.innerHTML = `<div class="mol3d-placeholder">分子结构加载失败<br><small>${escHtml(err.message)}</small></div>`;
+    container._stopRotation = () => {};
+  }
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  MODAL: Drug detail view                            */
+/* ═══════════════════════════════════════════════════ */
+let _compareMode = false;
+let _compareTarget = null;
+
+function showModal(code) {
+  const node = codeMap[code];
+  if (!node) return;
+  const path = getPath(code);
+  const pathHtml = path.slice(0,-1).map(p=>`<span>${escHtml(p.code)} ${escHtml(p.cn)}</span>`).join(' › ');
+  
+  const isL5 = node.level === 5;
+  const canFetchMol = isL5 && node.en && !isCombo(node.en);
+  const smiles = node.smiles || null;
+  
+  const cnDisplay = node.cn ? drugLink(node.cn) : '';
+  const enDisplay = node.en ? drugLink(node.en) : '';
+  
+  let molHtml = '';
+  if (isL5) {
+    if (canFetchMol) {
+      molHtml = `
+        <!-- 3D Viewer -->
+        <div class="mol3d-section">
+          <div class="mol3d-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4m-7.07-2.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4m-2.93 7.07l-2.83-2.83M6.76 6.76L3.93 3.93"/></svg>
+            分子结构
+            <button class="compare-toggle" id="compareBtn" onclick="toggleCompare('${code}')">⚖️ 对比模式</button>
+          </div>
+          <div id="mol3dGrid" class="compare-grid compare-single">
+            <div class="compare-panel">
+              <div class="compare-panel-header">📌 ${escHtml(node.cn)} (${node.code})</div>
+              <div class="mol3d-container" id="mol3dMain"></div>
+            </div>
+            <div class="compare-panel" id="comparePanel2" style="display:none">
+              <div class="compare-panel-header" id="comparePanelHeader2">选择对比药物</div>
+              <div class="mol3d-container" id="mol3dCompare">
+                <div class="mol3d-placeholder">从相似药物列表中选择一个药物进行对比</div>
+              </div>
+            </div>
+          </div>
+          <div class="atom-legend">
+            <div class="atom-legend-item"><div class="atom-dot" style="background:#909090"></div>碳 C</div>
+            <div class="atom-legend-item"><div class="atom-dot" style="background:#ff0d0d"></div>氧 O</div>
+            <div class="atom-legend-item"><div class="atom-dot" style="background:#3050f8"></div>氮 N</div>
+            <div class="atom-legend-item"><div class="atom-dot" style="background:#ffff30"></div>硫 S</div>
+            <div class="atom-legend-item"><div class="atom-dot" style="background:#1ff01f"></div>氯 Cl</div>
+            <div class="atom-legend-item"><div class="atom-dot" style="background:#ffffff;border-color:#999"></div>氢 H</div>
+          </div>
+        </div>
+
+        <!-- SMILES -->
+        <div class="mol3d-section">
+          <div class="mol3d-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            SMILES
+          </div>
+          <div id="smilesBox" class="smiles-box">
+            ${smiles ? smiles + '<button class="smiles-copy" onclick="navigator.clipboard.writeText(\'' + smiles.replace(/'/g,"\\'").replace(/\\/g,"\\\\") + '\').then(()=>this.textContent=\'已复制\')">复制</button>' : '<span style="color:#ef4444">SMILES数据缺失</span>'}
+          </div>
+        </div>
+
+        <!-- Similar drugs -->
+        <div class="mol3d-section similar-section">
+          <div class="mol3d-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            结构相似药物 (阈值 ≥ 70%)
+          </div>
+          <div id="similarArea">
+            ${smiles ? '<div class="sim-progress"><div class="spinner" style="display:inline-block;vertical-align:middle;margin-right:6px"></div><span id="simProgress">正在计算Tanimoto相似度...</span></div>' : '<div class="no-mol-data">无SMILES数据，无法计算相似度</div>'}
+          </div>
+        </div>
+      `;
+    } else {
+      molHtml = `
+        <div class="mol3d-section">
+          <div class="no-mol-data">
+            ⚠️ 该药物可能为大分子蛋白链或复方制剂，暂不支持3D结构预览
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  // Children list for non-L5 nodes
+  let childrenHtml = '';
+  if (!isL5 && node.children && node.children.length > 0) {
+    childrenHtml = '<div class="mol3d-section"><div class="mol3d-section-title">下级分类 (' + node.children.length + ')</div>';
+    childrenHtml += '<div class="similar-cards">';
+    for (const child of node.children) {
+      childrenHtml += `
+        <div class="similar-card" onclick="closeModal();setTimeout(()=>showModal('${child.code}'),200)">
+          <div class="similar-card-info">
+            <div class="similar-card-name">${escHtml(child.cn)}</div>
+            <div class="similar-card-code">${child.code} · ${escHtml(child.en || '')}</div>
+          </div>
+          ${child.children?.length ? '<span class="similar-score mid">' + child.children.length + '项</span>' : ''}
+        </div>
+      `;
+    }
+    childrenHtml += '</div></div>';
+  }
+
+  document.getElementById('modalContent').innerHTML = `
+    <div class="modal-code" style="color:${levelColors[node.level]}">${node.code}</div>
+    <div class="modal-cn">${cnDisplay}</div>
+    <div class="modal-en">${enDisplay}</div>
+    ${pathHtml ? `<div class="modal-path">${pathHtml}</div>` : ''}
+    <div class="modal-meta">
+      <span class="meta-tag" style="background:${levelBg[node.level]};color:${levelColors[node.level]}">${levelNames[node.level]}</span>
+      ${node.children?.length ? `<span class="meta-tag" style="background:var(--bg);color:var(--text2)">下级 ${node.children.length} 项</span>` : ''}
+      ${smiles ? '<span class="meta-tag" style="background:#dcfce7;color:#166534">🧬 有SMILES</span>' : ''}
+    </div>
+    ${molHtml}
+    ${childrenHtml}
+  `;
+  
+  document.getElementById('modalOverlay').classList.add('open');
+  _compareMode = false;
+  _compareTarget = null;
+  
+  // Load 3D model async
+  if (canFetchMol && smiles) {
+    setTimeout(() => render3D('mol3dMain', smiles, { drugCode: code }), 100);
+    // Find similar drugs
+    findSimilarDrugs(code, smiles, 0.7).then(results => {
+      const area = document.getElementById('similarArea');
+      if (!area) return;
+      if (results.length === 0) {
+        area.innerHTML = '<div class="no-mol-data">未找到相似度 ≥ 70% 的药物</div>';
+        return;
+      }
+      let html = '<div class="similar-cards">';
+      for (const r of results) {
+        const n = codeMap[r.code];
+        if (!n) continue;
+        const pct = (r.sim * 100).toFixed(1);
+        const scoreClass = r.sim >= 0.85 ? 'high' : 'mid';
+        html += `
+          <div class="similar-card" onclick="showModal('${r.code}')" data-code="${r.code}">
+            <div class="similar-card-info">
+              <div class="similar-card-name">${escHtml(n.cn)}</div>
+              <div class="similar-card-code">${n.code} · ${escHtml(n.en || '')}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button class="btn" style="font-size:10px;padding:2px 8px;" onclick="event.stopPropagation();compareTo('${r.code}')">⚖️</button>
+              <span class="similar-score ${scoreClass}">${pct}%</span>
+            </div>
+          </div>
+        `;
+      }
+      html += '</div>';
+      area.innerHTML = html;
+    });
+  }
+}
+
+function toggleCompare(sourceCode) {
+  _compareMode = !_compareMode;
+  const btn = document.getElementById('compareBtn');
+  const grid = document.getElementById('mol3dGrid');
+  const panel2 = document.getElementById('comparePanel2');
+  
+  if (_compareMode) {
+    btn.classList.add('active');
+    grid.classList.remove('compare-single');
+    panel2.style.display = '';
+  } else {
+    btn.classList.remove('active');
+    grid.classList.add('compare-single');
+    panel2.style.display = 'none';
+    _compareTarget = null;
+  }
+}
+
+function compareTo(code) {
+  if (!_compareMode) {
+    const btn = document.getElementById('compareBtn');
+    if (btn) {
+      _compareMode = true;
+      btn.classList.add('active');
+      const grid = document.getElementById('mol3dGrid');
+      const panel2 = document.getElementById('comparePanel2');
+      if (grid) grid.classList.remove('compare-single');
+      if (panel2) panel2.style.display = '';
+    }
+  }
+  const n = codeMap[code];
+  if (!n) return;
+  _compareTarget = code;
+  const header = document.getElementById('comparePanelHeader2');
+  if (header) header.textContent = `🔬 ${n.cn} (${n.code})`;
+  const smi = n.smiles || '';
+  if (smi) {
+    render3D('mol3dCompare', smi, { drugCode: code });
+  } else {
+    const el = document.getElementById('mol3dCompare');
+    if (el) el.innerHTML = '<div class="mol3d-placeholder">该药物无SMILES数据</div>';
+  }
+}
+
+function closeModal(e) {
+  if (e && e.target !== document.getElementById('modalOverlay')) return;
+  document.getElementById('modalOverlay').classList.remove('open');
+  // Cleanup 3D viewers
+  ['mol3dMain', 'mol3dCompare'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el._stopRotation) el._stopRotation();
+  });
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  NEBULA GRAPH (Canvas, performance-optimized)       */
+/* ═══════════════════════════════════════════════════ */
+let _nebulaInited = false;
+let _nebulaMode = 'atc';
+let _nebulaNodes = [];
+let _nebulaEdges = [];
+let _nebulaAnim = null;
+let _nebulaDirty = true;   // only re-render when dirty
+
+function openNebula() {
+  document.getElementById('nebulaOverlay').classList.add('open');
+  if (!_nebulaInited) {
+    _nebulaInited = true;
+    setTimeout(initNebula, 100);
+  } else { _nebulaDirty = true; }
+}
+
+function closeNebula() {
+  document.getElementById('nebulaOverlay').classList.remove('open');
+  if (_nebulaAnim) { cancelAnimationFrame(_nebulaAnim); _nebulaAnim = null; }
+}
+
+function setNebulaMode(mode) {
+  _nebulaMode = mode;
+  document.getElementById('nbBtnAtc').classList.toggle('active', mode === 'atc');
+  document.getElementById('nbBtnSim').classList.toggle('active', mode === 'sim');
+  buildNebulaData(mode);
+  runNebulaLayout();
+  _nebulaDirty = true;
+}
+
+function initNebula() {
+  const canvas = document.getElementById('nebulaCanvasEl');
+  const wrap = document.getElementById('nebulaCanvas');
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  
+  function resize() {
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    _nebulaDirty = true;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  
+  buildNebulaData('atc');
+  
+  let camX = 0, camY = 0, camScale = 1;
+  let dragging = false, dragStartX, dragStartY, dragCamX, dragCamY;
+  let hoveredNode = null;
+  
+  function markDirty() { _nebulaDirty = true; }
+  
+  canvas.addEventListener('mousedown', e => {
+    dragging = true;
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    dragCamX = camX; dragCamY = camY;
+  });
+  canvas.addEventListener('mousemove', e => {
+    if (dragging) {
+      camX = dragCamX + (e.clientX - dragStartX) / camScale;
+      camY = dragCamY + (e.clientY - dragStartY) / camScale;
+      markDirty();
+    }
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left - wrap.clientWidth/2) / camScale - camX;
+    const my = (e.clientY - rect.top - wrap.clientHeight/2) / camScale - camY;
+    let found = null;
+    for (const n of _nebulaNodes) {
+      const dx = n.x - mx, dy = n.y - my;
+      if (dx*dx + dy*dy < (n.r+6)*(n.r+6)) { found = n; break; }
+    }
+    if (found !== hoveredNode) { hoveredNode = found; markDirty(); }
+    const tip = document.getElementById('nebulaTip');
+    if (hoveredNode) {
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX - rect.left + 12) + 'px';
+      tip.style.top = (e.clientY - rect.top - 8) + 'px';
+      tip.innerHTML = `<strong>${hoveredNode.code}</strong> ${hoveredNode.cn}<br><span style="opacity:.6">${hoveredNode.en||''}</span>`;
+      canvas.style.cursor = 'pointer';
+    } else {
+      tip.style.display = 'none';
+      canvas.style.cursor = dragging ? 'grabbing' : 'grab';
+    }
+  });
+  canvas.addEventListener('mouseup', () => { dragging = false; });
+  canvas.addEventListener('mouseleave', () => { dragging = false; document.getElementById('nebulaTip').style.display = 'none'; });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.08 : 1/1.08;
+    camScale = Math.max(0.1, Math.min(10, camScale * factor));
+    markDirty();
+  }, { passive: false });
+  
+  let lastTouchDist = 0;
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      dragging = true;
+      dragStartX = e.touches[0].clientX; dragStartY = e.touches[0].clientY;
+      dragCamX = camX; dragCamY = camY;
+    } else if (e.touches.length === 2) {
+      lastTouchDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 1 && dragging) {
+      camX = dragCamX + (e.touches[0].clientX - dragStartX) / camScale;
+      camY = dragCamY + (e.touches[0].clientY - dragStartY) / camScale;
+    } else if (e.touches.length === 2) {
+      const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+      if (lastTouchDist > 0) camScale = Math.max(0.1, Math.min(10, camScale * (d/lastTouchDist)));
+      lastTouchDist = d;
+    }
+    markDirty();
+  }, { passive: false });
+  canvas.addEventListener('touchend', () => { dragging = false; lastTouchDist = 0; });
+  
+  canvas.addEventListener('click', e => {
+    if (hoveredNode && hoveredNode.level === 5) {
+      closeNebula();
+      setTimeout(() => showModal(hoveredNode.code), 200);
+    }
+  });
+  
+  document.getElementById('nebulaSearch').addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    if (!q) { _nebulaNodes.forEach(n => n._hl = false); markDirty(); return; }
+    _nebulaNodes.forEach(n => {
+      n._hl = n.code.toLowerCase().includes(q) || (n.cn||'').includes(q) || (n.en||'').toLowerCase().includes(q);
+    });
+    const match = _nebulaNodes.find(n => n._hl);
+    if (match) { camX = -match.x; camY = -match.y; camScale = 2.5; }
+    markDirty();
+  });
+  
+  runNebulaLayout();
+  
+  const lcm = { 1:'#60a5fa', 2:'#34d399', 3:'#fbbf24', 4:'#f87171', 5:'#c084fc' };
+  
+  function render() {
+    _nebulaAnim = requestAnimationFrame(render);
+    if (!_nebulaDirty) return;  // skip if nothing changed
+    _nebulaDirty = false;
+    
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    ctx.clearRect(0, 0, w, h);
+    ctx.save();
+    ctx.translate(w/2, h/2);
+    ctx.scale(camScale, camScale);
+    ctx.translate(camX, camY);
+    
+    // Viewport culling bounds (in world coords)
+    const vx0 = -w/(2*camScale) - camX - 50;
+    const vy0 = -h/(2*camScale) - camY - 50;
+    const vx1 = w/(2*camScale) - camX + 50;
+    const vy1 = h/(2*camScale) - camY + 50;
+    
+    // Edges — batch by color for fewer state changes
+    ctx.globalAlpha = 0.15;
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 0.5 / camScale;
+    ctx.beginPath();
+    for (const e of _nebulaEdges) {
+      if (e.backbone) continue;
+      const s = e.source, t = e.target;
+      if (s.x < vx0 && t.x < vx0) continue;
+      if (s.x > vx1 && t.x > vx1) continue;
+      ctx.moveTo(s.x, s.y); ctx.lineTo(t.x, t.y);
+    }
+    ctx.stroke();
+    
+    ctx.globalAlpha = 0.5;
+    ctx.strokeStyle = '#60a5fa';
+    ctx.lineWidth = 1.5 / camScale;
+    ctx.beginPath();
+    for (const e of _nebulaEdges) {
+      if (!e.backbone) continue;
+      ctx.moveTo(e.source.x, e.source.y); ctx.lineTo(e.target.x, e.target.y);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    
+    // Nodes — NO shadowBlur (main perf killer)
+    for (const n of _nebulaNodes) {
+      if (n.x < vx0 || n.x > vx1 || n.y < vy0 || n.y > vy1) continue;
+      const isHov = n === hoveredNode;
+      const isHl = n._hl;
+      const r = isHov ? n.r * 1.5 : n.r;
+      const col = lcm[n.level] || '#94a3b8';
+      
+      ctx.fillStyle = isHl ? '#fff' : col;
+      ctx.globalAlpha = isHov || isHl ? 1 : (n.level <= 2 ? 0.9 : 0.6);
+      ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, 6.2832); ctx.fill();
+      
+      // Highlight ring
+      if (isHl || isHov) {
+        ctx.strokeStyle = col; ctx.lineWidth = 2/camScale;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath(); ctx.arc(n.x, n.y, r + 3/camScale, 0, 6.2832); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      
+      if ((camScale > 1 && n.level <= 3) || (camScale > 2 && n.level <= 4) || isHov || isHl) {
+        ctx.fillStyle = isHl ? '#fff' : '#cbd5e1';
+        ctx.font = `${Math.max(4, 10/camScale)}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(n.cn || n.code, n.x, n.y + r + 10/camScale);
+      }
+    }
+    ctx.restore();
+    
+    // Legend (static, drawn once)
+    ctx.fillStyle = 'rgba(15,23,42,0.85)';
+    ctx.fillRect(8, h-90, 120, 82);
+    ctx.font = '11px sans-serif';
+    let ly = h - 75;
+    for (const [lv, col] of Object.entries(lcm)) {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(20, ly, 4, 0, 6.2832); ctx.fill();
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillText(levelNames[lv] || '', 30, ly + 4);
+      ly += 14;
+    }
+  }
+  
+  document.getElementById('nebulaLoading').style.display = 'none';
+  _nebulaDirty = true;
+  render();
+}
+
+function buildNebulaData(mode) {
+  _nebulaNodes = [];
+  _nebulaEdges = [];
+  const nodeMap = {};
+  
+  if (mode === 'atc') {
+    // Sample nodes for performance: all L1-L3, sample L4 & L5
+    Object.values(codeMap).forEach(n => {
+      if (n.level <= 3) {
+        const nn = { code: n.code, cn: n.cn, en: n.en, level: n.level, r: [0,14,10,6][n.level]||4, x: (Math.random()-0.5)*800, y: (Math.random()-0.5)*800, vx:0, vy:0, _hl:false };
+        _nebulaNodes.push(nn);
+        nodeMap[n.code] = nn;
+      }
+    });
+    // Sample L4
+    const l4All = Object.values(codeMap).filter(n => n.level === 4);
+    const l4Sample = l4All.length > 300 ? l4All.filter((_, i) => i % Math.ceil(l4All.length/300) === 0) : l4All;
+    l4Sample.forEach(n => {
+      const nn = { code: n.code, cn: n.cn, en: n.en, level: n.level, r: 3, x: (Math.random()-0.5)*800, y: (Math.random()-0.5)*800, vx:0, vy:0, _hl:false };
+      _nebulaNodes.push(nn);
+      nodeMap[n.code] = nn;
+    });
+    // Sample L5 (top 500 with SMILES)
+    const l5All = Object.values(codeMap).filter(n => n.level === 5 && n.smiles);
+    const l5Sample = l5All.slice(0, 500);
+    l5Sample.forEach(n => {
+      const nn = { code: n.code, cn: n.cn, en: n.en, level: n.level, r: 2, x: (Math.random()-0.5)*800, y: (Math.random()-0.5)*800, vx:0, vy:0, _hl:false };
+      _nebulaNodes.push(nn);
+      nodeMap[n.code] = nn;
+    });
+    
+    // Edges: parent-child connections
+    _nebulaNodes.forEach(nn => {
+      const n = codeMap[nn.code];
+      if (n.parentCode && nodeMap[n.parentCode]) {
+        const backbone = n.level <= 2;
+        _nebulaEdges.push({ source: nodeMap[n.parentCode], target: nn, strength: backbone ? 0.8 : 0.3, backbone });
+      }
+    });
+  }
+  else if (mode === 'sim') {
+    // Structure similarity mode: only L5 with SMILES, connected by similarity
+    const l5 = Object.values(codeMap).filter(n => n.level === 5 && n.smiles).slice(0, 600);
+    l5.forEach(n => {
+      const nn = { code: n.code, cn: n.cn, en: n.en, level: n.level, r: 3, x: (Math.random()-0.5)*600, y: (Math.random()-0.5)*600, vx:0, vy:0, _hl:false, smiles: n.smiles };
+      _nebulaNodes.push(nn);
+      nodeMap[n.code] = nn;
+    });
+    
+    // Compute similarity edges using fallback fingerprints (fast)
+    const fps = {};
+    _nebulaNodes.forEach(nn => {
+      fps[nn.code] = fallbackFpLocal(nn.smiles);
+    });
+    
+    // Only add edges for high similarity
+    for (let i = 0; i < _nebulaNodes.length; i++) {
+      for (let j = i+1; j < _nebulaNodes.length; j++) {
+        const sim = tanimotoLocal(fps[_nebulaNodes[i].code], fps[_nebulaNodes[j].code]);
+        if (sim > 0.6) {
+          const backbone = sim > 0.85;
+          _nebulaEdges.push({ source: _nebulaNodes[i], target: _nebulaNodes[j], strength: sim, backbone });
+        }
+      }
+    }
+  }
+}
+
+// Local fallback fingerprint for nebula (not in worker)
+function fallbackFpLocal(smi) {
+  const fp = new Uint32Array(64);
+  if (!smi) return fp;
+  for (let i = 0; i < smi.length - 1; i++) {
+    const p = smi.charCodeAt(i) * 131 + smi.charCodeAt(i+1);
+    fp[p % 64] |= (1 << ((p >> 6) % 32));
+  }
+  for (let i = 0; i < smi.length - 2; i++) {
+    const t = smi.charCodeAt(i) * 17161 + smi.charCodeAt(i+1) * 131 + smi.charCodeAt(i+2);
+    fp[t % 64] |= (1 << ((t >> 6) % 32));
+  }
+  return fp;
+}
+function popcount32(x) { x=x-((x>>1)&0x55555555);x=(x&0x33333333)+((x>>2)&0x33333333);return(((x+(x>>4))&0x0F0F0F0F)*0x01010101)>>24; }
+function tanimotoLocal(a, b) {
+  let andC=0, orC=0;
+  for (let i=0;i<64;i++){andC+=popcount32(a[i]&b[i]);orC+=popcount32(a[i]|b[i]);}
+  return orC===0?0:andC/orC;
+}
+
+function runNebulaLayout() {
+  // Simple force-directed layout
+  const alpha = 0.3;
+  const iterations = 150;
+  const repulsion = 500;
+  const springLen = 50;
+  const springK = 0.05;
+  
+  for (let iter = 0; iter < iterations; iter++) {
+    const decay = 1 - iter / iterations;
+    
+    // Repulsion (simplified Barnes-Hut would be better for perf)
+    for (let i = 0; i < _nebulaNodes.length; i++) {
+      for (let j = i+1; j < _nebulaNodes.length; j++) {
+        const ni = _nebulaNodes[i], nj = _nebulaNodes[j];
+        let dx = nj.x - ni.x, dy = nj.y - ni.y;
+        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        const force = repulsion / (dist * dist) * decay;
+        const fx = dx / dist * force, fy = dy / dist * force;
+        ni.vx -= fx; ni.vy -= fy;
+        nj.vx += fx; nj.vy += fy;
+      }
+    }
+    
+    // Spring (edge attraction)
+    for (const e of _nebulaEdges) {
+      const s = e.source, t = e.target;
+      let dx = t.x - s.x, dy = t.y - s.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+      const force = (dist - springLen) * springK * decay;
+      const fx = dx / dist * force, fy = dy / dist * force;
+      s.vx += fx; s.vy += fy;
+      t.vx -= fx; t.vy -= fy;
+    }
+    
+    // Center gravity
+    for (const n of _nebulaNodes) {
+      n.vx -= n.x * 0.001 * decay;
+      n.vy -= n.y * 0.001 * decay;
+    }
+    
+    // Apply velocities
+    for (const n of _nebulaNodes) {
+      n.x += n.vx * alpha;
+      n.y += n.vy * alpha;
+      n.vx *= 0.7;
+      n.vy *= 0.7;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════ */
+/*  OVERVIEW (Treemap + Sunburst) — adapted from v16  */
+/* ═══════════════════════════════════════════════════ */
+// ═══════════════════════════════════════════════════
+//  OVERVIEW  (Treemap + Sunburst)
+// ═══════════════════════════════════════════════════
+let _ovInited = false, _ovMode = 'tm';
+
+function openMindMap() {
+  document.getElementById('ovOverlay').style.display = 'flex';
+  if (!_ovInited) {
+    _ovInited = true;
+    requestAnimationFrame(() => {
+      initTreemap();
+      initSunburst();
+      setOvMode('tm');
+    });
+  }
+}
+function closeMindMap() {
+  document.getElementById('ovOverlay').style.display = 'none';
+}
+function setOvMode(mode) {
+  _ovMode = mode;
+  ['tm','sb'].forEach(m => {
+    document.getElementById('ov-'+m+'-wrap').style.display = m===mode.slice(0,2) ? 'flex' : 'none';
+    document.getElementById('ovBtn-'+m).classList.toggle('ov-actbtn', m===mode.slice(0,2));
+  });
+  document.getElementById('ov-sb-controls').style.display = mode==='sb' ? 'flex' : 'none';
+  document.getElementById('ov-tm-controls').style.display = mode==='tm' ? 'flex' : 'none';
+  document.getElementById('ov-tm-bc').style.display = mode==='tm' ? 'flex' : 'none';
+  document.getElementById('ov-sb-bc').style.display = mode==='sb' ? 'flex' : 'none';
+  document.getElementById('ovHint').textContent = mode==='tm'
+    ? '点击方块下钻展开 · 面包屑回退'
+    : '点击扇区下钻 · 点击中心圆返回上级';
+  if (mode==='tm') window._tmResize && window._tmResize();
+  if (mode==='sb') window._sbResize && window._sbResize();
+}
+
+/* ── shared utils ── */
+const OV_HUES = [220,196,168,142,35,18,348,276,308,258,188,88,52,0];
+function ovCol(hi,depth,light){
+  const h=OV_HUES[hi%OV_HUES.length];
+  const s=[0,68,62,56,50,44][Math.min(depth,5)];
+  const l=light?[0,84,89,92,95,97][Math.min(depth,5)]:[0,30,40,50,60,70][Math.min(depth,5)];
+  return `hsl(${h},${s}%,${l}%)`;
+}
+function isOtherNode(n){
+  return /other|others|nos|combination|复方|其他|不另|各种/i.test((n.cn||'')+(n.en||''));
+}
+// assign _hi, _d, _sz, _vsz, _oth to every node
+// children get _hi based on sibling index for color differentiation
+function assignOvMeta(nodes, hi, d) {
+  nodes.forEach(n => {
+    n._hi  = hi;
+    n._d   = d;
+    n._oth = isOtherNode(n);
+    n._sz  = (n.children && n.children.length)
+      ? n.children.reduce((s, ch, ci) => s + assignOvMeta([ch], ci, d + 1), 0)
+      : 1;
+    n._vsz = Math.pow(Math.log1p(n._sz), 1.55);
+  });
+  return nodes.reduce((s, n) => s + n._sz, 0);
+}
+TREE.forEach((n, i) => assignOvMeta([n], i, 1));
+
+/* ── squarified treemap layout ── */
+function tmLayout(nodes,x,y,w,h){
+  if(!nodes.length||w<=0||h<=0)return[];
+  const sorted=[...nodes].sort((a,b)=>a._oth!==b._oth?(a._oth?1:-1):b._vsz-a._vsz);
+  return _sq(sorted,sorted.reduce((s,n)=>s+n._vsz,0),x,y,w,h);
+}
+function _sq(nodes,total,x,y,w,h){
+  if(!nodes.length)return[];
+  const res=[];let rem=[...nodes],rt=total,cx=x,cy=y,cw=w,ch=h;
+  while(rem.length){
+    const wide=cw>=ch,stripe=wide?ch:cw;
+    let row=[],rs=0,pw=Infinity;
+    for(let i=0;i<rem.length;i++){
+      const n=rem[i],ns=rs+n._vsz,ww=_wr(row.concat(n),ns,stripe,rt,wide?cw:ch);
+      if(row.length&&ww>pw)break;
+      row.push(n);rs=ns;pw=ww;
+    }
+    const along=(rs/rt)*(wide?cw:ch);let p=wide?cy:cx;
+    row.forEach(n=>{
+      const cross=stripe*(n._vsz/rs);
+      res.push(wide?{node:n,x:cx,y:p,w:along,h:cross}:{node:n,x:p,y:cy,w:cross,h:along});
+      p+=cross;
+    });
+    if(wide){cx+=along;cw-=along;}else{cy+=along;ch-=along;}
+    rt-=rs;rem=rem.slice(row.length);
+  }
+  return res;
+}
+function _wr(row,rs,stripe,total,along){
+  const len=(rs/total)*along;let w=0;
+  row.forEach(n=>{const h=stripe*(n._vsz/rs);const r=Math.max(len/h,h/len);if(r>w)w=r;});
+  return w;
+}
+
+/* ══════════════════════════════════════════════════
+   TREEMAP
+══════════════════════════════════════════════════ */
+function initTreemap(){
+  const cv=document.getElementById('tmCv');
+  const tip=document.getElementById('ovTip');
+  const PAD=2;
+  let W,H,rects=[],hov=null,cur=TREE,hist=[],curLbl='';
+
+  function resize(){
+    const dpr=window.devicePixelRatio||1;
+    const wrap=document.getElementById('ov-tm-wrap');
+    W=wrap.clientWidth;H=wrap.clientHeight;
+    cv.width=W*dpr;cv.height=H*dpr;
+    cv.style.width=W+'px';cv.style.height=H+'px';
+    cv.getContext('2d').scale(dpr,dpr);
+    rects=tmLayout(cur,PAD,PAD,W-PAD*2,H-PAD*2);
+    draw();
+  }
+  window._tmResize=resize;
+
+  function draw(){
+    const ctx=cv.getContext('2d');
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#f5f7fa';ctx.fillRect(0,0,W,H);
+    rects.forEach(r=>cell(ctx,r));
+  }
+  function cell(ctx,r){
+    const n=r.node,isH=n===hov;
+    const px=r.x,py=r.y,pw=r.w,ph=r.h;
+    const rad=Math.min(6,pw/2,ph/2);
+    ctx.beginPath();
+    ctx.moveTo(px+rad,py);ctx.lineTo(px+pw-rad,py);ctx.arcTo(px+pw,py,px+pw,py+rad,rad);
+    ctx.lineTo(px+pw,py+ph-rad);ctx.arcTo(px+pw,py+ph,px+pw-rad,py+ph,rad);
+    ctx.lineTo(px+rad,py+ph);ctx.arcTo(px,py+ph,px,py+ph-rad,rad);
+    ctx.lineTo(px,py+rad);ctx.arcTo(px,py,px+rad,py,rad);ctx.closePath();
+    ctx.fillStyle=isH?ovCol(n._hi,Math.max(1,n._d-1),true):ovCol(n._hi,n._d,true);
+    ctx.fill();
+    ctx.strokeStyle=ovCol(n._hi,n._d,false).replace('hsl(','hsla(').replace(')',',0.3)');
+    ctx.lineWidth=isH?2:0.8;ctx.stroke();
+    if(isH){ctx.strokeStyle=ovCol(n._hi,1,false).replace('hsl(','hsla(').replace(')',',0.65)');ctx.lineWidth=2;ctx.stroke();}
+    if(pw>28&&ph>18){
+      const fs=Math.min(14,Math.max(8,Math.min(pw/6,ph/3)));
+      const tc=ovCol(n._hi,1,false);
+      const clip=s=>{let t=s;while(ctx.measureText(t).width>pw-10&&t.length>1)t=t.slice(0,-1);return t.length<s.length&&t.length>1?t.slice(0,-1)+'\u2026':t;};
+      if(ph>36){
+        ctx.font=`600 ${Math.max(7,fs*0.7)}px monospace`;
+        ctx.fillStyle=tc.replace('hsl(','hsla(').replace(')',',0.45)');
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(n.code,px+pw/2,py+ph/2-fs*0.82);
+        ctx.font=`${n._d<=1?'700':'600'} ${fs}px system-ui,sans-serif`;
+        ctx.fillStyle=tc;ctx.fillText(clip(n.cn||n.en||n.code),px+pw/2,py+ph/2+fs*0.38);
+      }else{
+        ctx.font=`${n._d<=1?'700':'600'} ${fs}px system-ui,sans-serif`;
+        ctx.fillStyle=tc;ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(clip(n.cn||n.en||n.code),px+pw/2,py+ph/2);
+      }
+      if(pw>70&&ph>34){
+        ctx.font=`400 ${Math.max(7,fs*0.65)}px system-ui,sans-serif`;
+        ctx.fillStyle=tc.replace('hsl(','hsla(').replace(')',',0.38)');
+        ctx.textAlign='right';ctx.textBaseline='bottom';
+        ctx.fillText(n._sz,px+pw-5,py+ph-4);
+      }
+    }
+  }
+
+  function zoomIn(pr,children){
+    const D=300,t0=performance.now();
+    const fr={x:pr.x,y:pr.y,w:pr.w,h:pr.h};
+    const to={x:PAD,y:PAD,w:W-PAD*2,h:H-PAD*2};
+    const cr=tmLayout(children,PAD,PAD,W-PAD*2,H-PAD*2);
+    (function step(now){
+      let t=Math.min(1,(now-t0)/D);t=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+      const ctx=cv.getContext('2d');ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f7fa';ctx.fillRect(0,0,W,H);
+      rects.forEach(r=>{if(r===pr)return;
+        ctx.globalAlpha=1-t;
+        cell(ctx,{...r,x:r.x+(fr.x-r.x)*t,y:r.y+(fr.y-r.y)*t,w:r.w+(fr.w-r.w)*t,h:r.h+(fr.h-r.h)*t});
+        ctx.globalAlpha=1;});
+      cell(ctx,{node:pr.node,x:fr.x*(1-t)+to.x*t,y:fr.y*(1-t)+to.y*t,w:fr.w*(1-t)+to.w*t,h:fr.h*(1-t)+to.h*t});
+      ctx.globalAlpha=t;cr.forEach(r=>cell(ctx,r));ctx.globalAlpha=1;
+      if(t<1)requestAnimationFrame(step);else{rects=cr;hov=null;draw();tmInfo();}
+    })(performance.now());
+  }
+  function zoomOut(nodes){
+    const D=240,t0=performance.now();
+    const pr=tmLayout(nodes,PAD,PAD,W-PAD*2,H-PAD*2);
+    (function step(now){
+      let t=Math.min(1,(now-t0)/D);t=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+      const ctx=cv.getContext('2d');ctx.clearRect(0,0,W,H);ctx.fillStyle='#f5f7fa';ctx.fillRect(0,0,W,H);
+      ctx.globalAlpha=t;pr.forEach(r=>cell(ctx,r));
+      ctx.globalAlpha=1-t;rects.forEach(r=>cell(ctx,r));ctx.globalAlpha=1;
+      if(t<1)requestAnimationFrame(step);else{rects=pr;draw();tmInfo();}
+    })(performance.now());
+  }
+
+  function rAt(mx,my){let hit=null,mx2=-1;rects.forEach(r=>{if(mx>=r.x&&mx<=r.x+r.w&&my>=r.y&&my<=r.y+r.h&&r.node._d>mx2){mx2=r.node._d;hit=r;}});return hit;}
+  function showTip(e,n){
+    tip.style.display='block';
+    tip.style.left=Math.min(e.clientX+14,window.innerWidth-270)+'px';
+    tip.style.top=(e.clientY-10)+'px';
+    const ch=n.children?n.children.length:0;
+    tip.innerHTML=`<strong style="color:#1d4ed8">${n.code}</strong> ${n.cn||''}<br>`+
+      `<span style="color:#64748b;font-size:11px">${n.en||''}</span><br>`+
+      `<span style="color:#059669">${ch?'\u5b50\u5206\u7c7b'+ch+'\u00b7':''}\u836f\u7269${n._sz}\u79cd</span>`+
+      (ch?'<br><span style="color:#94a3b8;font-size:11px">\u70b9\u51fb\u5c55\u5f00</span>':'');
+  }
+  cv.addEventListener('mousemove',e=>{
+    const r=cv.getBoundingClientRect(),hit=rAt(e.clientX-r.left,e.clientY-r.top);
+    if(hit?.node!==hov){hov=hit?hit.node:null;draw();}
+    if(hit){showTip(e,hit.node);cv.style.cursor='pointer';}
+    else{tip.style.display='none';cv.style.cursor='default';}
+  });
+  cv.addEventListener('mouseleave',()=>{hov=null;tip.style.display='none';draw();});
+  cv.addEventListener('click',e=>{
+    const r=cv.getBoundingClientRect(),hit=rAt(e.clientX-r.left,e.clientY-r.top);
+    if(!hit?.node.children?.length){if(hit?.node.level===5){document.getElementById('ovOverlay').style.display='none';setTimeout(()=>showModal(hit.node.code),150);}return;}
+    hist.push({nodes:cur,label:curLbl});curLbl=hit.node.cn||hit.node.en||hit.node.code;
+    zoomIn(hit,hit.node.children);cur=hit.node.children;hov=null;tip.style.display='none';tmBc();
+  });
+  cv.addEventListener('touchend',e=>{
+    e.preventDefault();
+    const r=cv.getBoundingClientRect(),t=e.changedTouches[0],hit=rAt(t.clientX-r.left,t.clientY-r.top);
+    if(!hit?.node.children?.length){if(hit?.node.level===5){document.getElementById('ovOverlay').style.display='none';setTimeout(()=>showModal(hit.node.code),150);}return;}
+    hist.push({nodes:cur,label:curLbl});curLbl=hit.node.cn||hit.node.en||hit.node.code;
+    zoomIn(hit,hit.node.children);cur=hit.node.children;tmBc();
+  },{passive:false});
+
+  function tmBack(idx){
+    const tgt=hist[idx];hist=hist.slice(0,idx);curLbl=tgt.label;
+    zoomOut(tgt.nodes);cur=tgt.nodes;tmBc();
+  }
+  function tmBc(){
+    const el=document.getElementById('ov-tm-bc');
+    const parts=['<span class="ov-bc" data-idx="-1">\u5168\u90e8</span>'];
+    hist.forEach((s,i)=>{if(s.label)parts.push(`<span class="ov-sep">\u203a</span><span class="ov-bc" data-idx="${i}">${s.label}</span>`);});
+    if(curLbl)parts.push(`<span class="ov-sep">\u203a</span><span class="ov-bccur">${curLbl}</span>`);
+    el.innerHTML=parts.join('');
+    el.querySelectorAll('.ov-bc[data-idx]').forEach(e2=>{
+      e2.addEventListener('click',()=>{
+        const idx=parseInt(e2.dataset.idx);
+        if(idx===-1){hist=[];curLbl='';cur=TREE;rects=tmLayout(TREE,PAD,PAD,W-PAD*2,H-PAD*2);draw();tmBc();tmInfo();}
+        else tmBack(idx);
+      });
+    });
+  }
+  function tmInfo(){
+    const t=cur.reduce((s,n)=>s+n._sz,0);
+    document.getElementById('ov-tm-info').textContent=
+      `${curLbl||'\u5168\u90e814\u5927\u5206\u7c7b'}\u00b7${cur.length}\u5b50\u5206\u7c7b\u00b7${t.toLocaleString()}\u79cd\u836f\u7269`;
+  }
+  document.getElementById('tmReset').onclick=()=>{hist=[];curLbl='';cur=TREE;rects=tmLayout(TREE,PAD,PAD,W-PAD*2,H-PAD*2);draw();tmBc();tmInfo();};
+  document.getElementById('tmBack').onclick=()=>{if(hist.length){const tgt=hist.pop();curLbl=tgt.label;zoomOut(tgt.nodes);cur=tgt.nodes;tmBc();tmInfo();}else{hist=[];curLbl='';cur=TREE;rects=tmLayout(TREE,PAD,PAD,W-PAD*2,H-PAD*2);draw();tmBc();tmInfo();}};
+  resize();tmBc();tmInfo();
+}
+
+/* ══════════════════════════════════════════════════
+   SUNBURST
+══════════════════════════════════════════════════ */
+function initSunburst(){
+  const cv=document.getElementById('sbCv');
+  const tip=document.getElementById('ovTip');
+  let W,H,arcs=[],hov=null,focus=null,fpath=[],maxD=3;
+  const PI2=Math.PI*2;
+
+  function leaves(n){return n.children&&n.children.length?n.children.reduce((s,c)=>s+leaves(c),0):1;}
+  function getNodes(){return focus?(focus.children||[]):TREE;}
+  function buildArcs(nodes,a0,aTotal,depth){
+    const res=[],total=nodes.reduce((s,n)=>s+n._sz,0);
+    let a=a0;
+    nodes.forEach(n=>{
+      const sw=(n._sz/total)*aTotal;
+      if(sw>0.001){
+        res.push({node:n,a0:a,a1:a+sw,depth,mid:a+sw/2});
+        if(n.children&&n.children.length&&depth<maxD)
+          res.push(...buildArcs(n.children,a,sw,depth+1));
+      }
+      a+=sw;
+    });
+    return res;
+  }
+  function rebuild(){arcs=buildArcs(getNodes(),-Math.PI/2,PI2,1);}
+
+  function resize(){
+    const dpr=window.devicePixelRatio||1;
+    const wrap=document.getElementById('ov-sb-wrap');
+    W=wrap.clientWidth;H=wrap.clientHeight;
+    cv.width=W*dpr;cv.height=H*dpr;
+    cv.style.width=W+'px';cv.style.height=H+'px';
+    cv.getContext('2d').scale(dpr,dpr);
+    rebuild();draw();
+  }
+  window._sbResize=resize;
+
+  function draw(){
+    const ctx=cv.getContext('2d');
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#f5f7fa';ctx.fillRect(0,0,W,H);
+    const cx=W/2,cy=H/2,R=Math.min(W,H)*0.44,cR=R*0.13;
+    arcs.forEach(arc=>{
+      const rIn=cR+R*((arc.depth-1)/maxD)*(1-cR/R);
+      const rOut=cR+R*(arc.depth/maxD)*(1-cR/R);
+      const isH=arc===hov;
+      ctx.beginPath();
+      ctx.arc(cx,cy,rOut,arc.a0,arc.a1);
+      ctx.arc(cx,cy,rIn,arc.a1,arc.a0,true);
+      ctx.closePath();
+      ctx.fillStyle=isH?ovCol(arc.node._hi,Math.max(1,arc.depth-1),true):ovCol(arc.node._hi,arc.depth,true);
+      ctx.fill();
+      ctx.strokeStyle=ovCol(arc.node._hi,arc.depth,false).replace('hsl(','hsla(').replace(')',',0.22)');
+      ctx.lineWidth=isH?2:0.6;ctx.stroke();
+      // label
+      const sw=arc.a1-arc.a0,rMid=(rIn+rOut)/2,rW=rOut-rIn,aLen=sw*rMid;
+      if(aLen>18&&rW>9){
+        const lx=cx+rMid*Math.cos(arc.mid),ly=cy+rMid*Math.sin(arc.mid);
+        ctx.save();ctx.translate(lx,ly);
+        let rot=arc.mid;if(rot>Math.PI/2&&rot<Math.PI*3/2)rot+=Math.PI;
+        ctx.rotate(rot);
+        const fs=arc.depth===1?11:arc.depth===2?9:7.5;
+        ctx.font=`${arc.depth<=2?'600':'400'} ${fs}px system-ui,sans-serif`;
+        ctx.fillStyle=ovCol(arc.node._hi,1,false);
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        const lbl=arc.node.cn||arc.node.en||arc.node.code;
+        let txt=lbl;const maxW=rW*0.85;
+        while(ctx.measureText(txt).width>maxW&&txt.length>1)txt=txt.slice(0,-1);
+        if(txt.length<lbl.length&&txt.length>1)txt=txt.slice(0,-1)+'\u2026';
+        ctx.fillText(txt,0,0);ctx.restore();
+      }
+    });
+    // center
+    ctx.beginPath();ctx.arc(W/2,H/2,cR*0.94,0,PI2);
+    ctx.fillStyle=focus?ovCol(focus._hi,3,true):'#eef2f7';ctx.fill();
+    ctx.strokeStyle=focus?ovCol(focus._hi,1,false).replace('hsl(','hsla(').replace(')',',0.35)'):'rgba(100,116,139,0.25)';
+    ctx.lineWidth=1.5;ctx.stroke();
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    if(focus){
+      let lbl=focus.cn||focus.en||focus.code;
+      ctx.font='700 10px system-ui,sans-serif';ctx.fillStyle=ovCol(focus._hi,1,false);
+      const maxW=cR*1.6;while(ctx.measureText(lbl).width>maxW&&lbl.length>1)lbl=lbl.slice(0,-1);
+      ctx.fillText(lbl,W/2,H/2-7);
+      ctx.font='500 8px system-ui,sans-serif';ctx.fillStyle='#94a3b8';ctx.fillText('\u21a9\u8fd4\u56de',W/2,H/2+8);
+    }else{
+      ctx.font='700 12px system-ui,sans-serif';ctx.fillStyle='#334155';ctx.fillText('ATC',W/2,H/2-7);
+      ctx.font='500 8px system-ui,sans-serif';ctx.fillStyle='#94a3b8';ctx.fillText('\u70b9\u51fb\u4e0b\u94bb',W/2,H/2+7);
+    }
+  }
+
+  function arcAt(mx,my){
+    const dx=mx-W/2,dy=my-H/2,dist=Math.sqrt(dx*dx+dy*dy);
+    const R=Math.min(W,H)*0.44,cR=R*0.13;
+    if(dist<cR*0.94)return '__c__';
+    let a=Math.atan2(dy,dx);
+    for(let i=arcs.length-1;i>=0;i--){
+      const arc=arcs[i];
+      const rIn=cR+R*((arc.depth-1)/maxD)*(1-cR/R);
+      const rOut=cR+R*(arc.depth/maxD)*(1-cR/R);
+      if(dist<rIn||dist>rOut)continue;
+      let aa=a;
+      while(aa<arc.a0)aa+=PI2;
+      while(aa>arc.a1+PI2)aa-=PI2;
+      if(aa>=arc.a0&&aa<=arc.a1)return arc;
+    }
+    return null;
+  }
+
+  cv.addEventListener('mousemove',e=>{
+    const r=cv.getBoundingClientRect(),hit=arcAt(e.clientX-r.left,e.clientY-r.top);
+    const prev=hov;hov=(hit&&hit!=='__c__')?hit:null;
+    if(hov!==prev)draw();
+    if(hov){
+      tip.style.display='block';
+      tip.style.left=Math.min(e.clientX+14,window.innerWidth-270)+'px';
+      tip.style.top=(e.clientY-10)+'px';
+      const n=hov.node,ch=n.children?n.children.length:0;
+      tip.innerHTML=`<strong style="color:#1d4ed8">${n.code}</strong> ${n.cn||''}<br>`+
+        `<span style="color:#64748b;font-size:11px">${n.en||''}</span><br>`+
+        `<span style="color:#059669">\u5b50\u5206\u7c7b${ch}\u00b7\u672b\u7ea7${leaves(n)}\u79cd</span>`;
+      cv.style.cursor=ch?'pointer':'default';
+    }else{tip.style.display='none';cv.style.cursor=hit==='__c__'&&focus?'pointer':'default';}
+  });
+  cv.addEventListener('mouseleave',()=>{hov=null;tip.style.display='none';draw();});
+  cv.addEventListener('click',e=>{
+    const r=cv.getBoundingClientRect(),hit=arcAt(e.clientX-r.left,e.clientY-r.top);
+    if(hit==='__c__'){if(fpath.length)focus=fpath.pop();else focus=null;}
+    else if(hit?.node.level===5){document.getElementById('ovOverlay').style.display='none';setTimeout(()=>showModal(hit.node.code),150);}
+    else if(hit?.node.children?.length){fpath.push(focus);focus=hit.node;}
+    hov=null;tip.style.display='none';rebuild();draw();sbBc();sbInfo();
+  });
+  cv.addEventListener('touchend',e=>{
+    e.preventDefault();
+    const r=cv.getBoundingClientRect(),t=e.changedTouches[0],hit=arcAt(t.clientX-r.left,t.clientY-r.top);
+    if(hit==='__c__'){if(fpath.length)focus=fpath.pop();else focus=null;}
+    else if(hit?.node.level===5){document.getElementById('ovOverlay').style.display='none';setTimeout(()=>showModal(hit.node.code),150);}
+    else if(hit?.node.children?.length){fpath.push(focus);focus=hit.node;}
+    rebuild();draw();sbBc();sbInfo();
+  },{passive:false});
+
+  function sbBc(){
+    const el=document.getElementById('ov-sb-bc');
+    const parts=['<span class="ov-bc" data-idx="-1">\u5168\u90e8</span>'];
+    fpath.forEach((n,i)=>{if(n)parts.push(`<span class="ov-sep">\u203a</span><span class="ov-bc" data-idx="${i}">${n.code} ${n.cn||''}</span>`);});
+    if(focus)parts.push(`<span class="ov-sep">\u203a</span><span class="ov-bccur">${focus.code} ${focus.cn||''}</span>`);
+    el.innerHTML=parts.join('');
+    el.querySelectorAll('.ov-bc[data-idx]').forEach(e2=>{
+      e2.addEventListener('click',()=>{
+        const idx=parseInt(e2.dataset.idx);
+        if(idx===-1){focus=null;fpath.length=0;}else{focus=fpath[idx];fpath.length=idx;}
+        rebuild();draw();sbBc();sbInfo();
+      });
+    });
+  }
+  function sbInfo(){
+    const nodes=getNodes(),t=nodes.reduce((s,n)=>s+n._sz,0);
+    document.getElementById('ov-sb-info').textContent=
+      `${focus?(focus.cn||focus.code):'\u5168\u90e8'}\u00b7${nodes.length}\u5b50\u5206\u7c7b\u00b7${t.toLocaleString()}\u79cd`;
+  }
+  // depth buttons
+  [2,3,4,5].forEach(d=>{
+    document.getElementById('sbD'+d).onclick=()=>{
+      maxD=d;
+      document.querySelectorAll('.sb-dbtn').forEach(b=>b.classList.remove('ov-actbtn'));
+      document.getElementById('sbD'+d).classList.add('ov-actbtn');
+      rebuild();draw();
+    };
+  });
+  document.getElementById('sbReset').onclick=()=>{focus=null;fpath.length=0;rebuild();draw();sbBc();sbInfo();};
+  resize();sbBc();sbInfo();
+}
+
+
+/* ═══════════════════════════════════════════════════ */
+/*  INITIALIZATION                                     */
+/* ═══════════════════════════════════════════════════ */
+function finishLoading() {
+  setLoad(100, '就绪！');
+  setTimeout(() => {
+    document.getElementById('loadingScreen').classList.add('fade-out');
+    setTimeout(() => document.getElementById('loadingScreen').style.display = 'none', 500);
+  }, 300);
+}
+
+// Boot
+(function init() {
+  setLoad(10, '渲染分类树...');
+  
+  requestAnimationFrame(() => {
+    const container = document.getElementById('treeContainer');
+    renderTree(TREE, container);
+    setLoad(40, '初始化相似度引擎...');
+    updateHeaderHeight();
+    window.addEventListener('resize', updateHeaderHeight);
+    
+    // Start similarity engine (main-thread, chunked async)
+    initSimEngine();
+  });
+})();
+</script>
+</body>
+</html>

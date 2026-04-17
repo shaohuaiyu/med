@@ -1,1 +1,1 @@
-just an simple app for a medical student
+Privacy Policy: This app does not collect or store any personal user data.
